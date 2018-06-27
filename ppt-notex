@@ -7,14 +7,13 @@ import zipfile
 TEST_FILE = "tests/test01.pptx"
 
 def read_note(note_xml):
-    print("reading xml...")
-
     # namespaces
     ns = {
             "a" : "http://schemas.openxmlformats.org/drawingml/2006/main",
             "p" : "http://schemas.openxmlformats.org/presentationml/2006/main",
     }
 
+    # root
     root = ET.fromstring(note_xml)
 
     # cSld = common_slide_data
@@ -28,33 +27,33 @@ def read_note(note_xml):
     # p = paragraph
     # r = run
     # t = text
+    slide_note = ""
     for paragraph in notes_text.findall('a:p', ns):
         for run in paragraph.findall('a:r', ns):
             for t in run.findall('a:t', ns):
-                print(t.text, end='')
-        print()
+                slide_note += t.text
+        slide_note += "\n"
 
-    print("finished reading.")
-
+    return slide_note
 
 def read_ppt(filename):
     with zipfile.ZipFile(TEST_FILE) as zipped:
         reg = re.compile("ppt/notesSlides/notesSlide([0-9]+).xml")
         notes_slides = list(filter(reg.match, zipped.namelist()))
 
+        notes = ['' for x in notes_slides]
         for zipped_slide in notes_slides:
+            slide_number = int(reg.match(zipped_slide).group(1))
             with zipped.open(zipped_slide) as slide:
-                read_note(slide.read())
+                notes[slide_number-1] = read_note(slide.read())
+
+        return notes
 
 
 def main():
-    print("--- yeah ok ---")
-    print()
-
-    read_ppt(TEST_FILE)
-
-    print()
-    print("--- yeah done ---")
+    notes = read_ppt(TEST_FILE)
+    for i in range(len(notes)):
+        print("Slide {}:\n{}".format(i+1, notes[i]))
 
 
 if __name__ == "__main__":
