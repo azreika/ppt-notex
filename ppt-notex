@@ -31,7 +31,8 @@ def read_note(note_xml):
     for paragraph in notes_text.findall('a:p', ns):
         for run in paragraph.findall('a:r', ns):
             for t in run.findall('a:t', ns):
-                slide_note += t.text
+                if t.text != None:
+                    slide_note += t.text
         slide_note += "\n"
 
     return slide_note
