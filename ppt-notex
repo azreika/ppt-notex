@@ -1,20 +1,40 @@
 #!/usr/bin/env python3
 
 import re
+import xml.etree.ElementTree as ET
 import zipfile
 
 TEST_FILE = "tests/test01.pptx"
 
-def read_note(slide_file):
-    print(slide_file)
+def read_note(note_xml):
+    print("reading xml...")
+
+    node_prefix = "{http://schemas.openxmlformats.org/presentationml/2006/main}"
+
+    root = ET.fromstring(note_xml)
+
+    # cSld = common_slide_data
+    # spTree = shapes_tree
+    # sp = shape
+    # txBody = text_body
+    shapes_tree = root.find('./{0}cSld/{0}spTree'.format(node_prefix))
+    notes_shape = shapes_tree.findall('{0}sp'.format(node_prefix))[1]
+    notes_text = notes_shape.find('{0}txBody'.format(node_prefix))
+
+    for child in notes_text:
+        print(child.tag, child.attrib)
+
+    print("finished reading.")
 
 
 def read_ppt(filename):
     with zipfile.ZipFile(TEST_FILE) as zipped:
         reg = re.compile("ppt/notesSlides/notesSlide([0-9]+).xml")
         notes_slides = list(filter(reg.match, zipped.namelist()))
-        for slide_file in notes_slides:
-            read_note(slide_file)
+
+        for zipped_slide in notes_slides:
+            with zipped.open(zipped_slide) as slide:
+                read_note(slide.read())
 
 
 def main():
