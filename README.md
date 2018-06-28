@@ -1,3 +1,3 @@
 # ppt-notex
 
-PowerPoint slide note extractor.
+PowerPoint slide notes extractor.

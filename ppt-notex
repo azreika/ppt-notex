@@ -7,44 +7,67 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 def read_note(note_xml):
-    # namespaces
+    """ Reads in the notes in a given xml string from a notesSlideX.xml file
+
+    Arguments:
+        note_xml (string): xml string contained in a notesSlideX.xml file
+
+    Returns the text in the slide notes associated with the file.
+    """
+    # xml namespaces
     ns = {
             "a" : "http://schemas.openxmlformats.org/drawingml/2006/main",
             "p" : "http://schemas.openxmlformats.org/presentationml/2006/main",
     }
 
-    # root
+    # generate xml tree
     root = ET.fromstring(note_xml)
 
-    # cSld = common_slide_data
-    # spTree = shapes_tree
-    # sp = shape
-    # txBody = text_body
+    # find the associated notes for this slide
+    #   cSld = common_slide_data
+    #   spTree = shapes_tree
+    #   sp = shape
+    #   txBody = text_body
     shapes_tree = root.find('./p:cSld/p:spTree', ns)
-    notes_shape = shapes_tree.findall('p:sp', ns)[1]
+    notes_shape = shapes_tree.findall('p:sp', ns)[1] # second shape in the tree
     notes_text = notes_shape.find('p:txBody', ns)
 
-    # p = paragraph
-    # r = run
-    # t = text
+    # print all non-empty text fields in the notes
+    #   p = paragraph
+    #   r = run
+    #   t = text
     slide_note = ""
     for paragraph in notes_text.findall('a:p', ns):
         for run in paragraph.findall('a:r', ns):
-            for t in run.findall('a:t', ns):
-                if t.text != None:
-                    slide_note += t.text
+            for text_field in run.findall('a:t', ns):
+                if text_field.text != None:
+                    slide_note += text_field.text
         slide_note += "\n"
 
     return slide_note
 
+
 def read_ppt(filename):
+    """ Reads in all notes from a given PowerPoint file
+
+    Arguments:
+        filename (string): the PowerPoint file to read in notes from
+
+    Returns a list of all slide notes in order.
+    """
+    # PowerPoint files are just zipped xml files
     with zipfile.ZipFile(filename) as zipped:
+        # notes for slide X are all located in notesSlideX.xml
+        # note that these are 1-indexed
         reg = re.compile("ppt/notesSlides/notesSlide([0-9]+).xml")
         notes_slides = list(filter(reg.match, zipped.namelist()))
 
+        # read in all slides in the correct order
         notes = ['' for x in notes_slides]
         for zipped_slide in notes_slides:
             slide_number = int(reg.match(zipped_slide).group(1))
+
+            # read in the notes
             with zipped.open(zipped_slide) as slide:
                 notes[slide_number-1] = read_note(slide.read())
 
@@ -52,8 +75,22 @@ def read_ppt(filename):
 
 
 def format_notes(notes, numbering, delimiter):
+    """ Formats a list of slide notes appropriately for output
+
+    Arguments:
+        notes ([string]): a list of slide notes
+        numbering (boolean): true iff the notes of slide X should be
+                             prepended with "Slide X:\n"
+        delimiter (string): the delimiter to place between the notes
+                            of consecutive slides
+
+    Returns the formatted notes as a string.
+    """
+    # prepend slide numbers to each note if needed
     if numbering:
         notes = ["Slide {}:\n{}".format(i+1, notes[i]) for i in range(len(notes))]
+
+    # return the notes joined up with the given delimiter
     return delimiter.join(notes)
 
 
