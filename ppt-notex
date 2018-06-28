@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
+import argparse
+import os.path
 import re
 import xml.etree.ElementTree as ET
 import zipfile
-
-TEST_FILE = "tests/test01.pptx"
 
 def read_note(note_xml):
     # namespaces
@@ -38,7 +38,7 @@ def read_note(note_xml):
     return slide_note
 
 def read_ppt(filename):
-    with zipfile.ZipFile(TEST_FILE) as zipped:
+    with zipfile.ZipFile(filename) as zipped:
         reg = re.compile("ppt/notesSlides/notesSlide([0-9]+).xml")
         notes_slides = list(filter(reg.match, zipped.namelist()))
 
@@ -51,10 +51,49 @@ def read_ppt(filename):
         return notes
 
 
-def main():
-    notes = read_ppt(TEST_FILE)
+def format_notes(notes):
+    result = ""
     for i in range(len(notes)):
-        print("Slide {}:\n{}".format(i+1, notes[i]))
+        result += "Slide {}:\n{}\n".format(i+1, notes[i])
+    return result
+
+
+def main():
+    # set up argument parser
+    arg_parser = argparse.ArgumentParser(prog='./ppt-notex',
+            description="PPT Notes Extractor")
+
+    # FILE
+    arg_parser.add_argument("FILE",
+            help="PowerPoint file to extract notes from")
+
+    # --output <FILE>
+    arg_parser.add_argument("-o", "--output",
+            help="output to the given file (stdout if unspecified)",
+            metavar="FILE", default=None)
+
+    # parse arguments
+    args = arg_parser.parse_args()
+    filename = args.FILE
+    out_file = args.output
+
+    # check if the file exists
+    if not os.path.isfile(filename):
+        print("Error: file '{}' does not exist".format(filename))
+        return
+
+    # read notes from the document in an ordered form
+    notes = read_ppt(filename)
+
+    # format the notes appropriately
+    output = format_notes(notes)
+
+    # write the notes
+    if out_file:
+        with open(out_file, "w") as out:
+            out.write(output)
+    else:
+        print(output)
 
 
 if __name__ == "__main__":
