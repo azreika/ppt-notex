@@ -51,11 +51,10 @@ def read_ppt(filename):
         return notes
 
 
-def format_notes(notes):
-    result = ""
-    for i in range(len(notes)):
-        result += "Slide {}:\n{}\n".format(i+1, notes[i])
-    return result
+def format_notes(notes, numbering, delimiter):
+    if numbering:
+        notes = ["Slide {}:\n{}".format(i+1, notes[i]) for i in range(len(notes))]
+    return delimiter.join(notes)
 
 
 def main():
@@ -72,10 +71,20 @@ def main():
             help="output to the given file (stdout if unspecified)",
             metavar="FILE", default=None)
 
+    # --numbering
+    arg_parser.add_argument("-n", "--numbering",
+            help="prepend each note with the slide number", action="store_true")
+
+    # --delimiter
+    arg_parser.add_argument("-d", "--delimiter",
+            help="add delimiter between the notes of each slide", default="\n")
+
     # parse arguments
     args = arg_parser.parse_args()
     filename = args.FILE
     out_file = args.output
+    numbering = args.numbering
+    delimiter = args.delimiter.encode().decode('unicode_escape')
 
     # check if the file exists
     if not os.path.isfile(filename):
@@ -86,7 +95,7 @@ def main():
     notes = read_ppt(filename)
 
     # format the notes appropriately
-    output = format_notes(notes)
+    output = format_notes(notes, numbering, delimiter)
 
     # write the notes
     if out_file:
